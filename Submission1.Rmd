@@ -1,0 +1,40 @@
+---
+title: "Submission1"
+author: "Zoe Plumridge"
+date: "2026-10-19"
+output: pdf_document
+---
+
+# fancy title here this is for submission 1
+
+## Setup
+
+### Versions
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Packages
+
+installs, libraries, etc
+ggplot2
+
+## Load in data
+
+covariate data: subjectID, geoID, mat_age_yrs, preg_preeclamspia, delivery_gestAge_wks, mat_BMI, mat_vitD, mat_asthma, sampleCollection_gestAge_wks, batch_Microarray 
+*I'm definitely interested in how asthma interacts here*
+
+## Save to raw data files
+
+use geoID to match covariate data to column names in gene expression data
+verify correct matching!
+gene expression row names reflect probe IDs from array
+
+identify one gene, one continuous covariate, two categorical covariates of interest (at least one derived from a continous variable)
+
+## Histogram of Gene Expression
+
+## Scatterplot of Covariate vs. Gene Expression
+
+## Boxplot of Gene Expression separated by both categorical variables
