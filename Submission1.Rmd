@@ -7,34 +7,100 @@ output: pdf_document
 
 # fancy title here this is for submission 1
 
+## Submission notes:
+
+Collaborators: Resources:
+
 ## Setup
-
-### Versions
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
 ### Packages
 
-installs, libraries, etc
-ggplot2
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
 
-## Load in data
+# packageCheck function by Carly Bobak 
 
-covariate data: subjectID, geoID, mat_age_yrs, preg_preeclamspia, delivery_gestAge_wks, mat_BMI, mat_vitD, mat_asthma, sampleCollection_gestAge_wks, batch_Microarray 
+# check if need both tidyverse and ggplot2
+# janitor and DataExplorer are good for data wrangling 
+packages = c("tidyverse", "janitor", "DataExplorer", "ggplot2")
+
+
+packageCheck = function(x) {
+    if (!require(x, character.only = TRUE)) {
+      install.packages(x, dependencies = TRUE)
+      library(x, character.only = TRUE)
+    }
+  }
+
+## Now load or install & load all
+loadPacks<-lapply(packages, packageCheck)
+```
+
+### Versions of things used
+
+## Data Setup
+
+### Load in data and save to raw data files
+
+```{r}
+rawCovar <- read.csv(file="GSE85307_covar-1.csv", sep = ",")
+rawGeneExp <- read.csv(file="GSE85307_geneExpression.csv", sep = ",")
+rawGeneNames <- read.csv(file="GSE85307_geneNames.csv", sep = ",")
+```
+
+### Confirm Data Appears as Expected and examine setup
+
+```{r}
+introduce(rawCovar)
+head(rawCovar)
+
+introduce(rawGeneExp)
+head(rawGeneExp)
+
+introduce(rawGeneNames)
+head(rawGeneNames)
+```
+
+covariate data: subjectID, geoID, mat_age_yrs, preg_preeclamspia, delivery_gestAge_wks, mat_BMI, mat_vitD, mat_asthma, sampleCollection_gestAge_wks, batch_Microarray
+
 *I'm definitely interested in how asthma interacts here*
 
-## Save to raw data files
+```{r}
+covar <- rawCovar
+geneExp <- rawGeneExp
+geneNames <- rawGeneNames
 
-use geoID to match covariate data to column names in gene expression data
-verify correct matching!
-gene expression row names reflect probe IDs from array
+# some pivot_longer situations 
+
+```
+
+use geoID to match covariate data to column names in gene expression data verify correct matching! gene expression row names reflect probe IDs from array
 
 identify one gene, one continuous covariate, two categorical covariates of interest (at least one derived from a continous variable)
 
 ## Histogram of Gene Expression
 
+```{r}
+#ggplot(covar, aes(x=Disease.Status, y=Ferritin, color=Gender))+
+#  geom_histogram()+
+#  labs(x = "Disease Status") +
+#  scale_color_manual(values = c('#7CC6FE', '#CCD5FF', '#E7BBE3'))
+```
+
 ## Scatterplot of Covariate vs. Gene Expression
 
+```{r}
+#ggplot(,aes())+
+#  geom_point()+
+#  labs(x="Covariate", y="Gene Expression")+
+#  scale_color_manual(values = c('#7CC6FE', '#CCD5FF', '#E7BBE3'))
+```
+
 ## Boxplot of Gene Expression separated by both categorical variables
+
+```{r}
+#ggplot(,aes())+
+#  geom_boxplot()+
+#  labs()+
+#  scale_color_manual(values = c('#7CC6FE', '#CCD5FF', '#E7BBE3'))
+```
