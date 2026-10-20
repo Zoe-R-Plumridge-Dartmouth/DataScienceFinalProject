@@ -9,7 +9,17 @@ output: pdf_document
 
 ## Submission notes:
 
-Collaborators: Resources:
+### Collaborators: 
+
+### Resources:
+
+packageCheck function by Carly Bobak 
+
+https://danmaclean.github.io/tidyversebook/03-joining.html 
+
+*ggplot2* cheat sheet: https://www.maths.usyd.edu.au/u/UG/SM/STAT3022/r/current/Misc/data-visualization-2.1.pdf
+
+Pre-defined themes for *ggplot2*: https://ggplot2.tidyverse.org/reference/ggtheme.html 
 
 ## Setup
 
@@ -17,8 +27,6 @@ Collaborators: Resources:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-
-# packageCheck function by Carly Bobak 
 
 # check if need both tidyverse and ggplot2
 # janitor and DataExplorer are good for data wrangling 
@@ -64,17 +72,46 @@ head(rawGeneNames)
 covariate data: subjectID, geoID, mat_age_yrs, preg_preeclamspia, delivery_gestAge_wks, mat_BMI, mat_vitD, mat_asthma, sampleCollection_gestAge_wks, batch_Microarray
 
 *I'm definitely interested in how asthma interacts here*
-
+Define new data frames from the raw data frames that we can manipulate without having to re-import the original data frames every time
 ```{r}
 covar <- rawCovar
 geneExp <- rawGeneExp
 geneNames <- rawGeneNames
+
+view(covar)
+view(geneExp)
+view(geneNames)
+```
+
+Cleaning data
+```{r}
+# covar has lots of metadata in the values spaces. clean that 
+cleanCovar <- covar %>%
+  separate(col="mat_age_yrs", into = c(NA, "mat_age_yrs"), sep = "\\ ", convert = TRUE) %>%
+  separate(col="preg_preeclampsia", into = c(NA, "preg_preeclampsia"), sep = "\\ ", convert = TRUE) %>%
+  separate(col="delivery_gestAge_wks", into = c(NA, "preg_preeclampsia"), sep = "\\ ", convert = TRUE) %>%
+  separate(col="sampleCollection_gestAge_wks", into = c(NA, "gest_weeks"), sep = "\\ ", convert = TRUE) %>%
+  separate(col="batch_Microarray", into = c(NA, "batch_Microarray"), sep = "\\ ", convert = TRUE) %>%
+  separate(col="mat_BMI", into = c(NA, "mat_BMI"), sep = "\\ ", convert = TRUE) %>%
+  separate(col="mat_vitD", into = c(NA, "mat_vitD"), sep = "\\ ", convert = TRUE) %>%
+  separate(col="mat_asthma", into = c(NA, "mat_asthma"), sep = "\\ ", convert = TRUE)
 
 # some pivot_longer situations 
 
 ```
 
 use geoID to match covariate data to column names in gene expression data verify correct matching! gene expression row names reflect probe IDs from array
+```{r}
+# confirm correct orientation
+# pivot longer if needed
+# remember that tidyverse uses tibbles not dataframes
+# tibbles can't have row names 
+# similar grammar to SQL 
+# join(df1, df2, by = c("" = ""))
+# can also leftjoin, rightjoin, fulljoin, innerjoin, bind_rows, bind_cols
+
+
+```
 
 identify one gene, one continuous covariate, two categorical covariates of interest (at least one derived from a continous variable)
 
