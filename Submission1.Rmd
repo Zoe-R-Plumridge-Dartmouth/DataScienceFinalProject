@@ -21,6 +21,12 @@ https://danmaclean.github.io/tidyversebook/03-joining.html
 
 Pre-defined themes for *ggplot2*: https://ggplot2.tidyverse.org/reference/ggtheme.html 
 
+https://r-graph-gallery.com/263-ggplot2-boxplot-parameters.html
+
+https://stackoverflow.com/questions/22036227/list-as-input-of-a-function
+
+
+
 ## Setup
 
 ### Packages
@@ -30,7 +36,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # check if need both tidyverse and ggplot2
 # janitor and DataExplorer are good for data wrangling 
-packages = c("tidyverse", "janitor", "DataExplorer", "ggplot2")
+packages = c("tidyverse", "janitor", "DataExplorer")
 
 
 packageCheck = function(x) {
@@ -96,8 +102,16 @@ cleanCovar <- covar %>%
   separate(col="mat_vitD", into = c(NA, "mat_vitD"), sep = "\\ ", convert = TRUE) %>%
   separate(col="mat_asthma", into = c(NA, "mat_asthma"), sep = "\\ ", convert = TRUE)
 
+#cleanCovar["batch_Microarray"] <- as.Date(cleanCovar["batch_Microarray"])
 # some pivot_longer situations 
 
+```
+```{r}
+#cleanCovar["batch_Microarray"] <- as.Date(cleanCovar["batch_Microarray"])
+cleanCovar["batch_Microarray"]
+(dates <- cleanCovar["batch_Microarray"])
+#apply(dates, MARGIN = 2, as.Date)
+#as.Date(dates, "%m/%d/%y")
 ```
 
 use geoID to match covariate data to column names in gene expression data verify correct matching! gene expression row names reflect probe IDs from array
@@ -140,4 +154,79 @@ identify one gene, one continuous covariate, two categorical covariates of inter
 #  geom_boxplot()+
 #  labs()+
 #  scale_color_manual(values = c('#7CC6FE', '#CCD5FF', '#E7BBE3'))
+```
+
+
+## Define function to produce plots
+One function (for submission 2)
+```{r}
+# can we also do this for submission 1
+# can we have one central function that calls each of three functions for making three different plots
+# for geneNames, don't need to tell function it's a list but use [[]] to get things from in it 
+create_plot <- function(df, geneName, contCov, catCov1, catCov2){
+  
+}
+
+create_histogram <- function(df, geneName){
+  # x is gene expression 
+  ggplot(df, aes()) +
+    geom_histogram() + 
+    labs(
+      
+    )
+}
+
+create_scatterplot <- function(df, geneName, contCov){
+  # x is covariate, y is gene expression
+  ggplot(df, aes(x = contCov)) + 
+    geom_point() +
+    labs(
+      x = geneName,
+      y = contCov
+    )
+}
+
+create_boxplot <- function(df, geneName, catCov1, catCov2){
+  # join catCov1 and catCov2 to get all possible combinations of both
+  # this will be interesting for naming
+  # OR could do faceting for one 
+  # actually color will help with this too
+  
+  # x is gene exp, y is both categorical variables 
+  ggplot(df, aes(x = df[geneName], y = catCov1, color = catCov2)) +
+    geom_boxplot() +
+    labs(
+      x = geneName,
+      y = catCov1,
+      color = catCov2
+    )
+}
+
+# function to create all of three plots for each gene name given 
+# might need to pass in theme value? but that's as a function call so not quite sure how that will work
+# will want to be able to easily change theme and have it apply to all plots 
+create_plots <- function(df, geneNames, contCov, catCov1, catCov2){
+  apply(geneNames, create_plot) # so actually this will probably not work bc too many inputs going on
+  # double check if inputs are the values or labels or categories or what 
+  
+  # define iterator 
+  i <- 1
+  # for i in geneNames make each set of plots 
+  # maybe only pass in the relevant part of the data frame ? 
+  #   say, create new df with just the input gene name
+  # make histogram of gene exp
+  create_histogram(df, geneName[i])
+  
+  # make scatterplot cov vs gene exp
+  create_scatterplot(df, geneName[i], contCov)
+
+  # make boxplot gene exp w both cov 
+  create_boxplot(df, geneName[i], catCov1, catCov2)
+}
+
+```
+
+## Call function to produce plots
+```{r}
+#create_plots(dataframe, geneNames[["name"]], continuous covariate 1, categorical covariate 1, categorical covariate 2)
 ```
