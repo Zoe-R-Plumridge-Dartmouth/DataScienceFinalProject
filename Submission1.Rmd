@@ -1,40 +1,45 @@
 ---
 title: "Submission1"
 author: "Zoe Plumridge"
-date: "2026-10-19"
+date: "2026-10-26"
 output: pdf_document
 ---
 
-# fancy title here this is for submission 1
+# Data Science Final Project Submission 1
+Zoe Plumridge
+
+Preeclampsia, Vitamin D, and Pregnancy Duration
 
 ## Submission notes:
 
-### Collaborators: 
+### Resources & References:
 
-### Resources:
+Source article: <https://pmc.ncbi.nlm.nih.gov/articles/PMC5127689/>
 
-packageCheck function by Carly Bobak 
+RASAL3 Gene: <https://www.genecards.org/card/RASAL3> 
 
-https://danmaclean.github.io/tidyversebook/03-joining.html 
+packageCheck function by Carly Bobak
 
-*ggplot2* cheat sheet: https://www.maths.usyd.edu.au/u/UG/SM/STAT3022/r/current/Misc/data-visualization-2.1.pdf
+<https://danmaclean.github.io/tidyversebook/03-joining.html>
 
-Pre-defined themes for *ggplot2*: https://ggplot2.tidyverse.org/reference/ggtheme.html 
+*ggplot2* cheat sheet: <https://www.maths.usyd.edu.au/u/UG/SM/STAT3022/r/current/Misc/data-visualization-2.1.pdf>
 
-https://r-graph-gallery.com/263-ggplot2-boxplot-parameters.html
+Pre-defined themes for *ggplot2*: <https://ggplot2.tidyverse.org/reference/ggtheme.html>
 
-https://stackoverflow.com/questions/22036227/list-as-input-of-a-function
+<https://r-graph-gallery.com/263-ggplot2-boxplot-parameters.html>
 
+<https://stackoverflow.com/questions/22036227/list-as-input-of-a-function>
 
 
 ## Setup
 
 ### Packages
 
-```{r setup, include=FALSE}
+```{r setup}
 knitr::opts_chunk$set(echo = TRUE)
 
-# check if need both tidyverse and ggplot2
+# Packages to use
+# tidyverse includes ggplot2
 # janitor and DataExplorer are good for data wrangling 
 packages = c("tidyverse", "janitor", "DataExplorer")
 
@@ -50,183 +55,151 @@ packageCheck = function(x) {
 loadPacks<-lapply(packages, packageCheck)
 ```
 
-### Versions of things used
+### Versions
+
+ggplot2: 4.0.3
+
+tidyverse: 2.0.0
+
+janitor: 2.2.1
+
+DataExplorer: 0.9.0
 
 ## Data Setup
 
 ### Load in data and save to raw data files
 
 ```{r}
+# Covariate data
 rawCovar <- read.csv(file="GSE85307_covar-1.csv", sep = ",")
+# Gene expression data
 rawGeneExp <- read.csv(file="GSE85307_geneExpression.csv", sep = ",")
+# Gene names
 rawGeneNames <- read.csv(file="GSE85307_geneNames.csv", sep = ",")
 ```
 
-### Confirm Data Appears as Expected and examine setup
+### Confirm Data Appears as Expected and Examine Setup
 
 ```{r}
-introduce(rawCovar)
-head(rawCovar)
+#introduce(rawCovar)
+#head(rawCovar)
 
-introduce(rawGeneExp)
-head(rawGeneExp)
+#introduce(rawGeneExp)
+#head(rawGeneExp)
 
-introduce(rawGeneNames)
-head(rawGeneNames)
+#introduce(rawGeneNames)
+#head(rawGeneNames)
 ```
 
-covariate data: subjectID, geoID, mat_age_yrs, preg_preeclamspia, delivery_gestAge_wks, mat_BMI, mat_vitD, mat_asthma, sampleCollection_gestAge_wks, batch_Microarray
+### Save to new data frames
+Save raw data to new data frames to be able to reset to raw data without re-importing original files. View new data frames.
 
-*I'm definitely interested in how asthma interacts here*
-Define new data frames from the raw data frames that we can manipulate without having to re-import the original data frames every time
 ```{r}
 covar <- rawCovar
 geneExp <- rawGeneExp
 geneNames <- rawGeneNames
 
-view(covar)
-view(geneExp)
-view(geneNames)
+#view(covar)
+#view(geneExp)
+#view(geneNames)
 ```
 
-Cleaning data
+## Data Wrangling 
+### Clean covariate data
+Covariate data includes metadata in values spaces that needs to be removed. Some column names can be shortened for clarity and concision. 
+
 ```{r}
-# covar has lots of metadata in the values spaces. clean that 
 cleanCovar <- covar %>%
-  separate(col="mat_age_yrs", into = c(NA, "mat_age_yrs"), sep = "\\ ", convert = TRUE) %>%
+  separate(col="mat_age_yrs", into = c(NA, "mat_age"), sep = "\\ ", convert = TRUE) %>%
   separate(col="preg_preeclampsia", into = c(NA, "preg_preeclampsia"), sep = "\\ ", convert = TRUE) %>%
-  separate(col="delivery_gestAge_wks", into = c(NA, "preg_preeclampsia"), sep = "\\ ", convert = TRUE) %>%
-  separate(col="sampleCollection_gestAge_wks", into = c(NA, "gest_weeks"), sep = "\\ ", convert = TRUE) %>%
+  separate(col="delivery_gestAge_wks", into = c(NA, "delivery_weeks"), sep = "\\ ", convert = TRUE) %>%
+  separate(col="sampleCollection_gestAge_wks", into = c(NA, "sample_weeks"), sep = "\\ ", convert = TRUE) %>%
   separate(col="batch_Microarray", into = c(NA, "batch_Microarray"), sep = "\\ ", convert = TRUE) %>%
   separate(col="mat_BMI", into = c(NA, "mat_BMI"), sep = "\\ ", convert = TRUE) %>%
   separate(col="mat_vitD", into = c(NA, "mat_vitD"), sep = "\\ ", convert = TRUE) %>%
   separate(col="mat_asthma", into = c(NA, "mat_asthma"), sep = "\\ ", convert = TRUE)
-
-#cleanCovar["batch_Microarray"] <- as.Date(cleanCovar["batch_Microarray"])
-# some pivot_longer situations 
-
-```
-```{r}
-#cleanCovar["batch_Microarray"] <- as.Date(cleanCovar["batch_Microarray"])
-cleanCovar["batch_Microarray"]
-(dates <- cleanCovar["batch_Microarray"])
-#apply(dates, MARGIN = 2, as.Date)
-#as.Date(dates, "%m/%d/%y")
 ```
 
-use geoID to match covariate data to column names in gene expression data verify correct matching! gene expression row names reflect probe IDs from array
+### Add gene names to gene expression data
 ```{r}
-# confirm correct orientation
-# pivot longer if needed
-# remember that tidyverse uses tibbles not dataframes
-# tibbles can't have row names 
-# similar grammar to SQL 
-# join(df1, df2, by = c("" = ""))
-# can also leftjoin, rightjoin, fulljoin, innerjoin, bind_rows, bind_cols
-
-
+named_genes <- geneExp %>%
+  rename(PROBEID = X) %>%
+  left_join(geneNames, by = "PROBEID")
 ```
 
-identify one gene, one continuous covariate, two categorical covariates of interest (at least one derived from a continous variable)
-
-## Histogram of Gene Expression
-
+### Pivot named genes into a long data frame
 ```{r}
-#ggplot(covar, aes(x=Disease.Status, y=Ferritin, color=Gender))+
-#  geom_histogram()+
-#  labs(x = "Disease Status") +
-#  scale_color_manual(values = c('#7CC6FE', '#CCD5FF', '#E7BBE3'))
+long_genes <- named_genes %>%
+  pivot_longer(col = c(starts_with("GSM")), values_to = "geneExp", names_to = "geoID")
 ```
 
-## Scatterplot of Covariate vs. Gene Expression
-
+### Join covariate data and gene expression data
 ```{r}
-#ggplot(,aes())+
-#  geom_point()+
-#  labs(x="Covariate", y="Gene Expression")+
-#  scale_color_manual(values = c('#7CC6FE', '#CCD5FF', '#E7BBE3'))
+long_cov_genes <- long_genes %>%
+  left_join(cleanCovar, by = "geoID")
 ```
 
-## Boxplot of Gene Expression separated by both categorical variables
-
+### Turn two categorical covariates into factors
 ```{r}
-#ggplot(,aes())+
-#  geom_boxplot()+
-#  labs()+
-#  scale_color_manual(values = c('#7CC6FE', '#CCD5FF', '#E7BBE3'))
+# Preeclampsia status
+long_cov_genes$preg_preeclampsia <- factor(long_cov_genes$preg_preeclampsia)
+
+# Maternal asthma status
+long_cov_genes$mat_asthma <- factor(ifelse(long_cov_genes$mat_asthma == 1, "Asthma", "Not Asthma"))
 ```
 
-
-## Define function to produce plots
-One function (for submission 2)
+### Turn on continuous covariate into a categorical covariate
 ```{r}
-# can we also do this for submission 1
-# can we have one central function that calls each of three functions for making three different plots
-# for geneNames, don't need to tell function it's a list but use [[]] to get things from in it 
-create_plot <- function(df, geneName, contCov, catCov1, catCov2){
-  
-}
-
-create_histogram <- function(df, geneName){
-  # x is gene expression 
-  ggplot(df, aes()) +
-    geom_histogram() + 
-    labs(
-      
-    )
-}
-
-create_scatterplot <- function(df, geneName, contCov){
-  # x is covariate, y is gene expression
-  ggplot(df, aes(x = contCov)) + 
-    geom_point() +
-    labs(
-      x = geneName,
-      y = contCov
-    )
-}
-
-create_boxplot <- function(df, geneName, catCov1, catCov2){
-  # join catCov1 and catCov2 to get all possible combinations of both
-  # this will be interesting for naming
-  # OR could do faceting for one 
-  # actually color will help with this too
-  
-  # x is gene exp, y is both categorical variables 
-  ggplot(df, aes(x = df[geneName], y = catCov1, color = catCov2)) +
-    geom_boxplot() +
-    labs(
-      x = geneName,
-      y = catCov1,
-      color = catCov2
-    )
-}
-
-# function to create all of three plots for each gene name given 
-# might need to pass in theme value? but that's as a function call so not quite sure how that will work
-# will want to be able to easily change theme and have it apply to all plots 
-create_plots <- function(df, geneNames, contCov, catCov1, catCov2){
-  apply(geneNames, create_plot) # so actually this will probably not work bc too many inputs going on
-  # double check if inputs are the values or labels or categories or what 
-  
-  # define iterator 
-  i <- 1
-  # for i in geneNames make each set of plots 
-  # maybe only pass in the relevant part of the data frame ? 
-  #   say, create new df with just the input gene name
-  # make histogram of gene exp
-  create_histogram(df, geneName[i])
-  
-  # make scatterplot cov vs gene exp
-  create_scatterplot(df, geneName[i], contCov)
-
-  # make boxplot gene exp w both cov 
-  create_boxplot(df, geneName[i], catCov1, catCov2)
-}
-
+# Delivery weeks in buckets
+# Very Early: before 36 weeks
+# Early: between 36 and 38 weeks
+# On time: between 38 and 40 weeks
+# Late: after 40 weeks
+long_cov_genes$delivery_time <- factor(ifelse(long_cov_genes$delivery_weeks < 36, "Very Early", ifelse(long_cov_genes$delivery_weeks < 38, "Early", ifelse(long_cov_genes$delivery_weeks > 40, "Late", "On Time"))), levels = c("Very Early", "Early", "On Time", "Late"), ordered = TRUE)
+levels(long_cov_genes$delivery_time)
 ```
 
-## Call function to produce plots
+## Gene of interest: RASAL3
+RASAL3 plays a role in signalling and T cell regulation. It is associated with diverticulitis and epiphyseal dysplasia. 
+
+### Subset data containing all genes to only look at RASAL3
 ```{r}
-#create_plots(dataframe, geneNames[["name"]], continuous covariate 1, categorical covariate 1, categorical covariate 2)
+RASAL3_exp <- long_cov_genes[which(long_cov_genes$GENE == "RASAL3"),]
+```
+
+## Plot 1: Histogram of gene expression
+```{r}
+ggplot(RASAL3_exp, aes(x = geneExp)) +
+  geom_histogram() + 
+  labs(x = "Gene Expression of RASAL3",
+       y = "Frequency",
+       title = "RASAL3 Gene Expression in Subset of VDAART Study"
+       ) +
+  theme_bw()
+```
+
+## Plot 2: Scatterplot of covariate versus gene expression 
+```{r}
+ggplot(RASAL3_exp, aes(x = mat_vitD, y = geneExp)) +
+  geom_point() + 
+  labs(
+    title = "Maternal Vitamin D vs. Gene Expression of RASAL3 at Trial Entry",
+    x = "Maternal Vitamin D (ng/mL)",
+    y = "Expression of RASAL3") +
+  theme_bw()
+```
+## Plot 3: Boxplot of gene expression separated by both categorical variables
+```{r}
+# Need to reorder factor levels of delivery_time first
+#RASAL3_exp$delivery_time = with(RASAL3_exp, reorder())
+# Plot
+ggplot(RASAL3_exp, aes(x = delivery_time, y = geneExp, color = preg_preeclampsia)) +
+  geom_boxplot() +
+  labs(
+    title = "Gene Expression of RASAL3 with Pregnancy Duration and Preeclampsia Status",
+    x = "Pregnancy Duration",
+    y = "Expression of RASAL3",
+    color = "Preeclampsia Status"
+  ) +
+  theme_bw()
 ```
