@@ -6,6 +6,7 @@ output: pdf_document
 ---
 
 # Data Science Final Project Submission 2
+
 Zoe Plumridge
 
 Preeclampsia, Vitamin D, and Pregnancy Duration
@@ -16,7 +17,7 @@ Preeclampsia, Vitamin D, and Pregnancy Duration
 
 Source article: <https://pmc.ncbi.nlm.nih.gov/articles/PMC5127689/>
 
-RASAL3 Gene: <https://www.genecards.org/card/RASAL3> 
+RASAL3 Gene: <https://www.genecards.org/card/RASAL3>
 
 packageCheck function by Carly Bobak
 
@@ -31,9 +32,8 @@ Pre-defined themes for *ggplot2*: <https://ggplot2.tidyverse.org/reference/ggthe
 <https://stackoverflow.com/questions/22036227/list-as-input-of-a-function>
 
 ## Data notes:
-Initial sample size:
-Final sample size:
-Analyses conducted: 
+
+Initial sample size: Final sample size: Analyses conducted:
 
 ## Setup
 
@@ -96,6 +96,7 @@ rawGeneNames <- read.csv(file="GSE85307_geneNames.csv", sep = ",")
 ```
 
 ### Save to new data frames
+
 Save raw data to new data frames to be able to reset to raw data without re-importing original files. View new data frames.
 
 ```{r}
@@ -108,9 +109,11 @@ geneNames <- rawGeneNames
 #view(geneNames)
 ```
 
-## Data Wrangling 
+## Data Wrangling
+
 ### Clean covariate data
-Covariate data includes metadata in values spaces that needs to be removed. Some column names can be shortened for clarity and concision. 
+
+Covariate data includes metadata in values spaces that needs to be removed. Some column names can be shortened for clarity and concision.
 
 ```{r}
 cleanCovar <- covar %>%
@@ -125,6 +128,7 @@ cleanCovar <- covar %>%
 ```
 
 ### Add gene names to gene expression data
+
 ```{r}
 named_genes <- geneExp %>%
   rename(PROBEID = X) %>%
@@ -132,18 +136,21 @@ named_genes <- geneExp %>%
 ```
 
 ### Pivot named genes into a long data frame
+
 ```{r}
 long_genes <- named_genes %>%
   pivot_longer(col = c(starts_with("GSM")), values_to = "geneExp", names_to = "geoID")
 ```
 
 ### Join covariate data and gene expression data
+
 ```{r}
 long_cov_genes <- long_genes %>%
   left_join(cleanCovar, by = "geoID")
 ```
 
 ### Turn two categorical covariates into factors
+
 ```{r}
 # Preeclampsia status
 long_cov_genes$preg_preeclampsia <- factor(long_cov_genes$preg_preeclampsia)
@@ -153,6 +160,7 @@ long_cov_genes$mat_asthma <- factor(ifelse(long_cov_genes$mat_asthma == 1, "Asth
 ```
 
 ### Turn on continuous covariate into a categorical covariate
+
 ```{r}
 # Delivery weeks in buckets
 # Very Early: before 36 weeks
@@ -172,17 +180,19 @@ summary(long_cov_genes$delivery_time)
 ```
 
 ## Submission 1: Gene of interest: RASAL3
-RASAL3 plays a role in signalling and T cell regulation. It is associated with diverticulitis and epiphyseal dysplasia. 
 
-Feedback from submission 1: make sure that plots can stand alone. Include information about definitions of pregnancy status in legends, axes, etc. 
+RASAL3 plays a role in signalling and T cell regulation. It is associated with diverticulitis and epiphyseal dysplasia.
 
+Feedback from submission 1: make sure that plots can stand alone. Include information about definitions of pregnancy status in legends, axes, etc.
 
 ### Subset data containing all genes to only look at RASAL3
+
 ```{r}
 RASAL3_exp <- long_cov_genes[which(long_cov_genes$GENE == "RASAL3"),]
 ```
 
 ### Plot 1: Histogram of gene expression
+
 ```{r}
 ggplot(RASAL3_exp, aes(x = geneExp)) +
   geom_histogram() + 
@@ -193,7 +203,8 @@ ggplot(RASAL3_exp, aes(x = geneExp)) +
   theme_bw()
 ```
 
-### Plot 2: Scatterplot of covariate versus gene expression 
+### Plot 2: Scatterplot of covariate versus gene expression
+
 ```{r}
 ggplot(RASAL3_exp, aes(x = mat_vitD, y = geneExp)) +
   geom_point() + 
@@ -206,6 +217,7 @@ ggplot(RASAL3_exp, aes(x = mat_vitD, y = geneExp)) +
 ```
 
 ### Plot 3: Boxplot of gene expression separated by both categorical variables
+
 ```{r}
 # Need to reorder factor levels of delivery_time first
 #RASAL3_exp$delivery_time = with(RASAL3_exp, reorder())
@@ -221,19 +233,20 @@ ggplot(RASAL3_exp, aes(x = delivery_time, y = geneExp, color = preg_preeclampsia
   theme_bw()
 ```
 
-
 ## Submission 2: Define function to produce plots
 
 ### Histogram Function
+
 ```{r}
 # Histogram
 create_histogram <- function(df, geneName){
   # x is gene expression 
+  print(paste0("Creating histogram for ", geneName))
   ggplot(df, aes(x = geneExp)) +
     geom_histogram() + 
     labs(
-      title = "__ Gene Expression in Subset of VDAART Study",
-      x = "Gene Expression of __",
+      title = paste0(geneName," Gene Expression in Subset of VDAART Study"),
+      x = paste0("Gene Expression of ", geneName),
       y = "Frequency" # find units 
     ) +
     theme_bw()
@@ -241,13 +254,16 @@ create_histogram <- function(df, geneName){
 ```
 
 ### Scatterplot Function
+
 ```{r}
 create_scatterplot <- function(df, geneName, contCov){
   # x is covariate, y is gene expression
-  ggplot(df, aes(x = contCov)) + 
+  #contCovX <- df[contCov]
+  print(paste0("Creating scatterplot for ", geneName))
+  ggplot(df, aes(x = mat_vitD, y = geneExp)) + 
     geom_point() +
     labs(
-      title = "Maternal Vitamin D vs. Gene Expression of ___ at Trial Entry (10-18 Weeks Gestation)",
+      title = paste0("Maternal Vitamin D vs. Gene Expression of ", geneName," at Trial Entry (10-18 Weeks Gestation)"),
       x = "Maternal Vitamin D (ng/mL)", # contCov
       y = "Expression of Gene" # geneName 
     ) +
@@ -256,6 +272,7 @@ create_scatterplot <- function(df, geneName, contCov){
 ```
 
 ### Boxplot Function
+
 ```{r}
 create_boxplot <- function(df, geneName, catCov1, catCov2){
   # x is gene exp, y is first categorical variable, color is second categorical variable
@@ -265,11 +282,15 @@ create_boxplot <- function(df, geneName, catCov1, catCov2){
   #cov1 <- df[which(df["GENE"] == geneName),]
   print("summary of input df")
   print(summary(df)) 
-  cov1 <- df[catCov1]
+  print("cov1 <- df[catCov1]")
+  print(cov1 <- df$delivery_time)
+  print("factors")
+  print(cov1 <- factor(cov1, levels = c("Very Early", "Early", "On Time", "Late")))
   print("summary of cov1")
   print(summary(cov1)) #157 NAs. correct factor levels at least though
   print(head(cov1))
-  cov2 <- df[catCov2]
+  cov2 <- df$preg_preeclampsia
+  cov2 <- factor(cov2, levels = c("Normal", "Preeclampsia"))
   print("summary of cov2")
   print(summary(cov2))
   print(head(cov2))
@@ -278,10 +299,14 @@ create_boxplot <- function(df, geneName, catCov1, catCov2){
   #print(cov1)
   print("dimensions of cov1")
   print(dim(cov1))
+  print(class(cov1)) # tbl_df, tbl, data.frame
+  cov1 <- factor(cov1, levels = c("Very Early", "Early", "On Time", "Late"))
   print(levels(cov1))
   #print(cov2)
   print("dimensions of cov2")
   print(dim(cov2))
+  cov2 <- factor(cov2, levels = c("Normal", "Preeclampsia"))
+  print(levels(cov2))
   print(catCov1)
   print(catCov2)
   
@@ -305,27 +330,31 @@ create_boxplot <- function(df, geneName, catCov1, catCov2){
 }
 ```
 
-## Define function to create all three plots for a given gene 
+## Define function to create all three plots for a given gene
+
 ```{r}
 create_plot <- function(df, geneName, contCov, catCov1, catCov2){
   # get only the actually relevant parts of the dataframe 
   cat(geneName)
   head(df)
   (gene <- df[which(df["GENE"] == geneName),])
-  
+  plots <- c()
   # technically would not have to pass in geneName now since only the one gene 
   # but this way don't have to get it again, might have formatting issues or something
-  create_histogram(gene, geneName)
-  create_scatterplot(gene, geneName, contCov)
-  return(create_boxplot(gene, geneName, catCov1, catCov2))
+  plots <- append(plots, create_histogram(gene, geneName))
+  plots <- append(plots, create_scatterplot(gene, geneName, contCov))
+  plots <- append(plots, create_boxplot(gene, geneName, catCov1, catCov2))
+  return(plots)
 }
 ```
 
-## Define function to iterate over list of genes 
+## Define function to iterate over list of genes
+
 ```{r}
 # function to create all of three plots for each gene name given
 # it's not going to like the defaults here, probably need to change to strings but then might need to change back
 create_plots <- function(df, geneNames, contCov = "mat_vitD", catCov1 = "delivery_time", catCov2 = "preg_preeclampsia"){
+  emptyPlots <- c()
   print(head(df))
   print(dim(df))
   print(summary(df)) 
@@ -334,17 +363,17 @@ create_plots <- function(df, geneNames, contCov = "mat_vitD", catCov1 = "deliver
   # but test first if need to do that every nested function bc that's annoying
   for (i in geneNames) {
     cat(i)
-    return(create_plot(df, i, contCov, catCov1, catCov2))
-    
+    emptyPlots <- append(emptyPlots, create_plot(df, i, contCov, catCov1, catCov2))
     # save in group of plots
   }
-  return(dim(df))
+  return(emptyPlots)
 }
 ```
 
 ## Call function to produce plots
+
 ```{r}
-geneNames = c("RASAL3", "UNC13A", "IL13")
+geneNames = c("RASAL3", "UNC13A", "IL26")
 #head(long_cov_genes)
 allPlots <- create_plots(df = long_cov_genes, geneNames = geneNames, contCov = "mat_vitD", catCov1 = "delivery_time", catCov2 = "preg_preeclampsia")
 allPlots
