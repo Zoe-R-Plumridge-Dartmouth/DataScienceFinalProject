@@ -58,6 +58,7 @@ packageCheck = function(x) {
 
 # Now load or install & load all
 loadPacks<-lapply(packages, packageCheck)
+set.seed(10)
 ```
 
 ### Versions
@@ -191,7 +192,6 @@ summary(long_cov_genes$delivery_time)
 ```
 
 ### Histogram Function
-
 ```{r}
 # Histogram
 create_histogram <- function(df, geneName){
@@ -236,7 +236,7 @@ create_scatterplot <- function(df, geneName, contCov){
 ```
 
 ### Boxplot Function
-
+add jitter!
 ```{r}
 create_boxplot <- function(df, geneName, catCov1, catCov2){
   # y is gene expression, x is delivery time in buckets, 
@@ -261,6 +261,8 @@ create_boxplot <- function(df, geneName, catCov1, catCov2){
       name = "Preeclampsia Status",
       labels = c("Normal", "Preeclampsia")
     ) +
+    # figure out how to split this up to line up properly 
+    geom_jitter(width = 0.2) + 
     theme(
       plot.title = element_textbox_simple(
         padding = margin(t = 10, b = 10)
