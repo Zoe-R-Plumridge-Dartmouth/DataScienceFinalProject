@@ -153,6 +153,9 @@ cleanCovar <- covar %>%
 named_genes <- geneExp %>%
   rename(PROBEID = X) %>%
   left_join(geneNames, by = "PROBEID")
+rownames(named_genes) <- named_genes$GENE
+named_genes <- named_genes[,-1] # remove PROBEID column
+#named_genes <- named_genes[,-158] # remove GENE column
 ```
 
 ### Pivot named genes into a long data frame
@@ -234,6 +237,7 @@ create_scatterplot <- function(df, geneName, contCov){
       x = "Maternal Vitamin D (ng/mL)", # contCov
       y = paste0("Expression of ", geneName) # geneName 
     ) +
+    geom_smooth(method = "loess", formula = y ~ x) +
     theme_bw() +
     theme(
       plot.title = element_textbox_simple(
@@ -327,10 +331,16 @@ RASAL3 plays a role in signalling and T cell regulation. It is associated with d
 
 ```{r}
 # List of genes to examine
-geneNames = c("RASAL3", "UNC13A", "IL26")
+geneNames = c("RASAL3", "UNC13A","UNC13C", "IL2", "IL24", "IL26", "IL7", "RBM15", "RBM47", "RBM7")
+# so. several of these actually do not have useful information :/ time to pick different ones
+# was hoping for groups of similar genes 
+# original list: "RASAL3", "UNC13A","UNC13C", "IL12RB1", "IL13", "IL1F10", "IL2", "IL24", "IL26", "IL7"
 
+```
+
+```{r}
 # Call function to make plots
-allPlots <- create_plots(df = long_cov_genes, geneNames = geneNames, 
+allPlots <- create_plots(df = long_cov_genes, geneNames = geneNames[1], 
                          contCov = "mat_vitD", catCov1 = "delivery_time", 
                          catCov2 = "preg_preeclampsia")
 
@@ -352,8 +362,40 @@ allPlots
 •	Heatmaps
 
 ```{r}
-plot_correlation(named_genes, maxcat = 10, type = "continuous")
+geneNames[1:10]
+# subset is not liking the 1:10
+# also some of these don't show up in named_genes
+chosen_genes <- subset(named_genes, (GENE == geneNames[1] | GENE == geneNames[2] | GENE == geneNames[3] | GENE == geneNames[4] | GENE == geneNames[5] | GENE == geneNames[6] | GENE == geneNames[7] | GENE == geneNames[8] | GENE == geneNames[9] | GENE == geneNames[10]))
+chosen_long_genes <- subset(long_genes, (GENE == geneNames[1] | GENE == geneNames[2] | GENE == geneNames[3] | GENE == geneNames[4] | GENE == geneNames[5] | GENE == geneNames[6] | GENE == geneNames[7] | GENE == geneNames[8] | GENE == geneNames[9] | GENE == geneNames[10]))
+#str(chosen_genes)
 ```
+
+```{r}
+#plot_correlation(chosen_long_genes, maxcat = 10, type = "continuous") # so absolutely not that
+plot_correlation(chosen_genes, maxcat = 10, type = "continuous")
+```
+```{r}
+rownames(chosen_genes) <- chosen_genes$GENE
+#chosen_genes <- chosen_genes[,-1] # get rid of probeID
+chosen_genes <- chosen_genes[,-158]
+# try some factor situations? 
+heatmap(as.matrix(chosen_genes))
+
+```
+
+```{r}
+chosen_cov_genes <- subset(long_cov_genes, (GENE == geneNames[1] | GENE == geneNames[2] | GENE == geneNames[3] | GENE == geneNames[4] | GENE == geneNames[5] | GENE == geneNames[6] | GENE == geneNames[7] | GENE == geneNames[8] | GENE == geneNames[9] | GENE == geneNames[10]))
+head(chosen_cov_genes)
+#rownames(chosen_genes) <- chosen_genes$GENE
+#chosen_genes <- chosen_genes[,-1] # get rid of probeID
+#chosen_genes <- chosen_genes[,-158]
+chosen_geneExp <- as.data.frame(chosen_cov_genes[,c("GENE", "geneExp")])
+#rownames(chosen_geneExp) <- chosen_cov_genes[,"GENE"]
+# heatmap(as.matrix(chosen_geneExp[,2])) # x must have at least 2 rows and 2 columns
+#rownames(chosen_geneExp) <- chosen_geneExp[,1] # can't have duplicate rownames
+
+```
+
 
 ```{r}
 #waffle_df <- data.frame(long_cov_genes$preg_preeclampsia, long_cov_genes$geneExp)
@@ -377,6 +419,35 @@ ggplot(long_cov_genes[1:3000,], aes(x = geneExp, y = GENE, fill = GENE)) +
   theme_ridges() +
   theme(legend.position = "none")
 ```
+
+```{r}
+ggplot(chosen_cov_genes, aes(x = geneExp, y = GENE, fill = GENE)) +
+  geom_density_ridges() +
+  theme_ridges() +
+  theme(legend.position = "none")
+```
+```{r}
+# probably need to scale things first
+ggplot(chosen_cov_genes, aes(x = subjectID, y = geoID, fill = mat_vitD)) +
+  geom_tile() +
+  theme_ridges() +
+  theme(legend.position = "none")
+
+ggplot(chosen_cov_genes, aes(x = preg_preeclampsia, y = delivery_time, fill = mat_vitD)) +
+  geom_tile()
+
+ggplot(chosen_cov_genes, aes(x = GENE, y = GENE, fill = geneExp)) +
+  geom_tile()
+
+ggplot(chosen_cov_genes, aes(x = geoID, y = GENE, fill = geneExp)) +
+  geom_tile()
+
+ggplot(chosen_cov_genes, aes(x = GENE, y = delivery_time, fill = geneExp)) +
+  geom_tile()
+```
+```
+
+
 ```{r}
 #str(named_genes)
 #scaled_named_genes <- scale(as.matrix(named_genes), scale = FALSE)

@@ -173,7 +173,7 @@ long_cov_genes$mat_asthma <- factor(ifelse(long_cov_genes$mat_asthma == 1,
                                            "Asthma", "Not Asthma"))
 ```
 
-### Turn on continuous covariate into a categorical covariate
+### Turn one continuous covariate into a categorical covariate
 Remember to include this information in labels
 ```{r}
 # Delivery weeks in buckets
@@ -244,7 +244,7 @@ create_boxplot <- function(df, geneName, catCov1, catCov2){
   # preeclampsia and delivery time currently hard coded
   boxplot <- ggplot(df, aes(x = delivery_time, y = geneExp, 
                         color = preg_preeclampsia)) +
-    geom_boxplot() +
+    geom_boxplot(outlier.shape = NA) +
     labs(
       y = geneName,
       x = "Pregnancy Duration in Weeks",
@@ -261,8 +261,8 @@ create_boxplot <- function(df, geneName, catCov1, catCov2){
       name = "Preeclampsia Status",
       labels = c("Normal", "Preeclampsia")
     ) +
-    # figure out how to split this up to line up properly 
-    geom_jitter(width = 0.2) + 
+    geom_point(position = position_jitterdodge()) +
+    #geom_jitter(width = 0.2) + 
     theme(
       plot.title = element_textbox_simple(
         padding = margin(t = 10, b = 10)
