@@ -31,12 +31,6 @@ Pre-defined themes for *ggplot2*: <https://ggplot2.tidyverse.org/reference/ggthe
 
 <https://stackoverflow.com/questions/22036227/list-as-input-of-a-function>
 
-## Data notes:
-
-Initial sample size: 
-Final sample size: 
-Analyses conducted:
-
 ## Setup
 
 ### Packages
@@ -435,6 +429,7 @@ ggplot(chosen_cov_genes, aes(x = geneExp, y = GENE, fill = GENE)) +
     axis.title.x = element_text(hjust = 0.5)
     )
 ```
+
 
 ## Table 1
 ```{r}

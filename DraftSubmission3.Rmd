@@ -429,6 +429,8 @@ heatmap(as.matrix(chosen_genes))
 ```{r}
 chosen_cov_genes <- subset(long_cov_genes, (GENE == geneNames[1] | GENE == geneNames[2] | GENE == geneNames[3] | GENE == geneNames[4] | GENE == geneNames[5] | GENE == geneNames[6] | GENE == geneNames[7] | GENE == geneNames[8] | GENE == geneNames[9] | GENE == geneNames[10]))
 head(chosen_cov_genes)
+chosen_cov_genes$geoID <- factor(chosen_cov_genes$geoID)
+chosen_cov_genes$subjectID <- factor(chosen_cov_genes$subjectID)
 #rownames(chosen_genes) <- chosen_genes$GENE
 #chosen_genes <- chosen_genes[,-1] # get rid of probeID
 #chosen_genes <- chosen_genes[,-158]
@@ -529,6 +531,86 @@ ggplot(chosen_cov_genes, aes(x = GENE, y = GENE, fill = geneExp)) +
 #scaled_named_genes <- scale(as.matrix(named_genes), scale = FALSE)
 ```
 
+```{r}
+scale_chosen_cov <- data.frame(chosen_cov_genes[1:3])
+scale_chosen_cov[3] <- scale(chosen_cov_genes[3])
+
+ggplot(scale_chosen_cov, aes(x = geneExp, y = GENE, fill = GENE)) +
+  geom_density_ridges() +
+  labs(
+    title = "Scaled Distributions of Expressions of Selected Genes",
+    x = "Scaled Gene Expression",
+    y = "Gene"
+  ) +
+  theme_ridges() +
+  theme(
+    legend.position = "none",
+    axis.text.y = element_text(face="italic"),
+    axis.title.y = element_text(hjust = 0.5),
+    axis.title.x = element_text(hjust = 0.5)
+    )
+```
+
+```{r}
+age_chosen_cov <- data.frame(chosen_cov_genes[c(1,2,3,5)])
+age_chosen_cov[c(3,4)] <- scale(chosen_cov_genes[c(3,5)])
+
+ggplot(age_chosen_cov, aes(x = geneExp*mat_age, y = GENE, fill = GENE)) +
+  geom_density_ridges() +
+  labs(
+    title = "Scaled Distributions of Expressions of Selected Genes",
+    x = "Scaled Gene Expression * Maternal Age",
+    y = "Gene"
+  ) +
+  theme_ridges() +
+  theme(
+    legend.position = "none",
+    axis.text.y = element_text(face="italic"),
+    axis.title.y = element_text(hjust = 0.5),
+    axis.title.x = element_text(hjust = 0.5)
+    )
+```
+```{r}
+age_chosen_cov <- data.frame(chosen_cov_genes[c(1,2,3,5)])
+age_chosen_cov[c(3,4)] <- scale(chosen_cov_genes[c(3,5)])
+
+ggplot(age_chosen_cov, aes(x = geneExp * mat_age, y = GENE, fill = GENE)) +
+  geom_density_ridges() +
+  labs(
+    title = "Scaled Distributions of Expressions of Selected Genes",
+    x = "Scaled Gene Expression * Maternal Age",
+    y = "Gene"
+  ) +
+  theme_ridges() +
+  theme(
+    legend.position = "none",
+    axis.text.y = element_text(face="italic"),
+    axis.title.y = element_text(hjust = 0.5),
+    axis.title.x = element_text(hjust = 0.5)
+    )
+```
+
+```{r}
+column_annot <- as.data.frame(cleanCovar[,c("preg_preeclampsia", "delivery_time")])
+rownames(column_annot) <- rownames(cleanCovar)
+
+pheat_colors <- list(
+  `preg_preeclampsia` = c(Normal="darkblue",Preeclampsia="firebrick"),
+  `delivery_time` = c(VeryEarly= "black", Early= "darkgray", 
+                      OnTime = "gray", Late = "lightgray") 
+)
+
+pheatmap(chosen_genes, 
+         show_rownames = F, 
+         show_colnames = F, 
+         annotation_col = column_annot, 
+         annotation_colors = pheat_colors, 
+         clustering_distance_cols = "canberra", 
+         clustering_distance_rows = "canberra",
+         clustering_method = "ward.D2", 
+         breaks=seq(from=3, to=12, length.out=101))
+```
+
 ## Table 1
 
 ```{r}
@@ -536,4 +618,5 @@ ggplot(chosen_cov_genes, aes(x = GENE, y = GENE, fill = geneExp)) +
 # table1(~ factor(sex) + age + factor(ulcer) + thickness | status, data=melanoma2)
 table1(~ mat_age + mat_vitD + mat_BMI + delivery_time | mat_asthma*preg_preeclampsia, long_cov_genes)
 table1(~ mat_age + mat_vitD + mat_BMI + delivery_time | preg_preeclampsia, long_cov_genes)
+table1(~ mat_age + mat_vitD + mat_BMI + delivery_time | preg_preeclampsia, chosen_cov_genes)
 ```
