@@ -47,7 +47,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Packages to use
 # tidyverse includes ggplot2
 # janitor and DataExplorer are good for data wrangling 
-packages = c("tidyverse", "janitor", "DataExplorer", "ggtext", "corrplot", "ggridges")
+packages = c("tidyverse", "janitor", "DataExplorer", "ggtext", "corrplot", "ggridges", "pheatmap", "table1")
 
 packageCheck = function(x) {
     if (!require(x, character.only = TRUE)) {
@@ -80,6 +80,10 @@ corrplot
 ggridges
 
 waffle ? 
+
+pheatmap:
+
+table1: 
 
 ## Data Setup
 
@@ -280,7 +284,8 @@ create_boxplot <- function(df, geneName, catCov1, catCov2){
     theme(
       plot.title = element_textbox_simple(
         padding = margin(t = 10, b = 10)
-      )
+      ),
+      axis.text.y = element_text(face="italic")
     )
 
   return(boxplot)
@@ -423,8 +428,18 @@ ggplot(long_cov_genes[1:3000,], aes(x = geneExp, y = GENE, fill = GENE)) +
 ```{r}
 ggplot(chosen_cov_genes, aes(x = geneExp, y = GENE, fill = GENE)) +
   geom_density_ridges() +
+  labs(
+    title = "Distributions of Expressions of Selected Genes",
+    x = "Gene Expression",
+    y = "Gene"
+  ) +
   theme_ridges() +
-  theme(legend.position = "none")
+  theme(
+    legend.position = "none",
+    axis.text.y = element_text(face="italic"),
+    axis.title.y = element_text(hjust = 0.5),
+    axis.title.x = element_text(hjust = 0.5)
+    )
 ```
 ```{r}
 # probably need to scale things first
@@ -444,11 +459,43 @@ ggplot(chosen_cov_genes, aes(x = geoID, y = GENE, fill = geneExp)) +
 
 ggplot(chosen_cov_genes, aes(x = GENE, y = delivery_time, fill = geneExp)) +
   geom_tile()
-```
+
+ggplot(chosen_cov_genes, aes(x = GENE, y = round(mat_age, digits = 0), fill = geneExp)) +
+  geom_tile() +
+  scale_y_continuous() +
+  labs(
+    x = "Gene name",
+    y = "Maternal Age, years",
+    fill = "Gene Expression"
+  )
+
+ggplot(chosen_cov_genes, aes(x = GENE, y = GENE, fill = geneExp)) +
+  geom_tile()
+
+ggplot(chosen_cov_genes, aes(x = GENE, y = GENE, fill = geneExp)) +
+  geom_tile() +
+  theme(
+    axis.text.x = element_text(face="italic"),
+    axis.text.y = element_text(face="italic")
+  )
 ```
 
+```{r}
+# use pheatmap
+# reference: carly's omics data notes from nov 10
+
+```
 
 ```{r}
 #str(named_genes)
 #scaled_named_genes <- scale(as.matrix(named_genes), scale = FALSE)
+```
+
+## Table 1
+
+```{r}
+# Example: 
+# table1(~ factor(sex) + age + factor(ulcer) + thickness | status, data=melanoma2)
+table1(~ mat_age + mat_vitD + mat_BMI + delivery_time | mat_asthma*preg_preeclampsia, long_cov_genes)
+table1(~ mat_age + mat_vitD + mat_BMI + delivery_time | preg_preeclampsia, long_cov_genes)
 ```
