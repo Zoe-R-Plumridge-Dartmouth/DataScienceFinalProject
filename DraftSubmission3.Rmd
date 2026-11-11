@@ -47,7 +47,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Packages to use
 # tidyverse includes ggplot2
 # janitor and DataExplorer are good for data wrangling 
-packages = c("tidyverse", "janitor", "DataExplorer", "ggtext", "corrplot", "ggridges", "pheatmap", "table1")
+packages = c("tidyverse", "janitor", "DataExplorer", "ggtext", "corrplot", "ggridges", "pheatmap", "table1", "RColorBrewer")
 
 packageCheck = function(x) {
     if (!require(x, character.only = TRUE)) {
@@ -204,6 +204,15 @@ long_cov_genes$delivery_time <- factor(
   levels = c("Very Early", "Early", "On Time", "Late"), ordered = TRUE)
 levels(long_cov_genes$delivery_time)
 summary(long_cov_genes$delivery_time)
+```
+Do this for cleanCovar as well
+
+```{r}
+cleanCovar$delivery_time <- factor(
+  ifelse(cleanCovar$delivery_weeks < 36, "VeryEarly", 
+         ifelse(cleanCovar$delivery_weeks < 38, "Early", 
+                ifelse(cleanCovar$delivery_weeks > 40, "Late", "OnTime"))), 
+  levels = c("VeryEarly", "Early", "OnTime", "Late"), ordered = TRUE)
 ```
 
 ### Histogram Function
@@ -371,8 +380,37 @@ geneNames[1:10]
 # subset is not liking the 1:10
 # also some of these don't show up in named_genes
 chosen_genes <- subset(named_genes, (GENE == geneNames[1] | GENE == geneNames[2] | GENE == geneNames[3] | GENE == geneNames[4] | GENE == geneNames[5] | GENE == geneNames[6] | GENE == geneNames[7] | GENE == geneNames[8] | GENE == geneNames[9] | GENE == geneNames[10]))
-chosen_long_genes <- subset(long_genes, (GENE == geneNames[1] | GENE == geneNames[2] | GENE == geneNames[3] | GENE == geneNames[4] | GENE == geneNames[5] | GENE == geneNames[6] | GENE == geneNames[7] | GENE == geneNames[8] | GENE == geneNames[9] | GENE == geneNames[10]))
+
+chosen_long_genes <- as.data.frame(subset(long_cov_genes, (GENE == geneNames[1] | GENE == geneNames[2] | GENE == geneNames[3] | GENE == geneNames[4] | GENE == geneNames[5] | GENE == geneNames[6] | GENE == geneNames[7] | GENE == geneNames[8] | GENE == geneNames[9] | GENE == geneNames[10])))
+#rownames(chosen_long_genes) <- chosen_long_genes$geoID
+#chosen_long_genes <- chosen_long_genes[,-2]
+rownames(cleanCovar) <- cleanCovar$geoID
+cleanCovar <- cleanCovar[,-2]
 #str(chosen_genes)
+```
+
+
+```{r}
+chosen_genes <- chosen_genes[,-158]
+```
+```{r}
+column_annot <- as.data.frame(cleanCovar[,c("preg_preeclampsia", "delivery_time")])
+rownames(column_annot) <- rownames(cleanCovar)
+
+pheat_colors <- list(
+  `preg_preeclampsia` = c(Normal="darkblue",Preeclampsia="firebrick"),
+  `delivery_time` = c(VeryEarly= "black", Early= "darkgray", OnTime = "gray", Late = "lightgray") 
+)
+
+pheatmap(chosen_genes, 
+         show_rownames = F, 
+         show_colnames = F, 
+         annotation_col = column_annot, 
+         annotation_colors = pheat_colors, 
+         clustering_distance_cols = "canberra", 
+         clustering_distance_rows = "canberra",
+         clustering_method = "ward.D2", 
+         breaks=seq(from=3, to=12, length.out=101))
 ```
 
 ```{r}
