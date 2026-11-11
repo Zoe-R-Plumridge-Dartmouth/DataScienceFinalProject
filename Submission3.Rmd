@@ -1,0 +1,444 @@
+---
+title: "Submission 3"
+author: "Zoe Plumridge"
+date: "2026-11-02"
+output: pdf_document
+---
+
+# Data Science Final Project Submission 3
+
+Zoe Plumridge
+
+Preeclampsia, Vitamin D, and Pregnancy Duration
+
+## Submission notes:
+
+### Resources & References:
+
+Source article: <https://pmc.ncbi.nlm.nih.gov/articles/PMC5127689/>
+
+RASAL3 Gene: <https://www.genecards.org/card/RASAL3>
+
+packageCheck function by Carly Bobak
+
+<https://danmaclean.github.io/tidyversebook/03-joining.html>
+
+*ggplot2* cheat sheet: <https://www.maths.usyd.edu.au/u/UG/SM/STAT3022/r/current/Misc/data-visualization-2.1.pdf>
+
+Pre-defined themes for *ggplot2*: <https://ggplot2.tidyverse.org/reference/ggtheme.html>
+
+<https://r-graph-gallery.com/263-ggplot2-boxplot-parameters.html>
+
+<https://stackoverflow.com/questions/22036227/list-as-input-of-a-function>
+
+## Data notes:
+
+Initial sample size: 
+Final sample size: 
+Analyses conducted:
+
+## Setup
+
+### Packages
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Packages to use
+# tidyverse includes ggplot2
+# janitor and DataExplorer are good for data wrangling 
+packages = c("tidyverse", "janitor", "DataExplorer", "ggtext", "corrplot", 
+             "ggridges", "pheatmap", "table1", "RColorBrewer")
+
+packageCheck = function(x) {
+    if (!require(x, character.only = TRUE)) {
+      install.packages(x, dependencies = TRUE)
+      library(x, character.only = TRUE)
+    }
+  }
+
+# Now load or install & load all
+loadPacks<-lapply(packages, packageCheck)
+remotes::install_github("hrbrmstr/waffle")
+library("waffle")
+set.seed(10)
+```
+
+### Versions
+
+ggplot2: 4.0.3
+
+tidyverse: 2.0.0
+
+janitor: 2.2.1
+
+DataExplorer: 0.9.0
+
+ggtext: 0.2.0
+
+corrplot
+
+ggridges
+
+waffle ? 
+
+pheatmap:
+
+table1: 
+
+## Data Setup
+
+### Load in data and save to raw data files
+
+```{r}
+# Covariate data
+rawCovar <- read.csv(file="GSE85307_covar-1.csv", sep = ",")
+# Gene expression data
+rawGeneExp <- read.csv(file="GSE85307_geneExpression.csv", sep = ",")
+# Gene names
+rawGeneNames <- read.csv(file="GSE85307_geneNames.csv", sep = ",")
+```
+
+### Confirm Data Appears as Expected and Examine Setup
+
+```{r}
+#introduce(rawCovar)
+#head(rawCovar)
+
+#introduce(rawGeneExp)
+#head(rawGeneExp)
+
+#introduce(rawGeneNames)
+#head(rawGeneNames)
+```
+
+### Save to new data frames
+
+Save raw data to new data frames to be able to reset to raw data without re-importing original files. View new data frames.
+
+```{r}
+covar <- rawCovar
+geneExp <- rawGeneExp
+geneNames <- rawGeneNames
+
+#view(covar)
+#view(geneExp)
+#view(geneNames)
+```
+
+## Data Wrangling
+
+### Clean covariate data
+
+Covariate data includes metadata in values spaces that needs to be removed. Some column names can be shortened for clarity and concision.
+
+```{r}
+cleanCovar <- covar %>%
+  separate(col="mat_age_yrs", into = c(NA, "mat_age"), sep = "\\ ", 
+           convert = TRUE) %>%
+  separate(col="preg_preeclampsia", into = c(NA, "preg_preeclampsia"), 
+           sep = "\\ ", convert = TRUE) %>%
+  separate(col="delivery_gestAge_wks", into = c(NA, "delivery_weeks"), 
+           sep = "\\ ", convert = TRUE) %>%
+  separate(col="sampleCollection_gestAge_wks", into = c(NA, "sample_weeks"), 
+           sep = "\\ ", convert = TRUE) %>%
+  separate(col="batch_Microarray", into = c(NA, "batch_Microarray"), 
+           sep = "\\ ", convert = TRUE) %>%
+  separate(col="mat_BMI", into = c(NA, "mat_BMI"), sep = "\\ ", 
+           convert = TRUE) %>%
+  separate(col="mat_vitD", into = c(NA, "mat_vitD"), sep = "\\ ", 
+           convert = TRUE) %>%
+  separate(col="mat_asthma", into = c(NA, "mat_asthma"), sep = "\\ ", 
+           convert = TRUE)
+```
+
+### Add gene names to gene expression data
+
+```{r}
+named_genes <- geneExp %>%
+  rename(PROBEID = X) %>%
+  left_join(geneNames, by = "PROBEID")
+rownames(named_genes) <- named_genes$GENE
+named_genes <- named_genes[,-1] # remove PROBEID column
+#named_genes <- named_genes[,-158] # remove GENE column
+```
+
+### Pivot named genes into a long data frame
+
+```{r}
+long_genes <- named_genes %>%
+  pivot_longer(col = c(starts_with("GSM")), values_to = "geneExp", 
+               names_to = "geoID")
+```
+
+### Join covariate data and gene expression data
+
+```{r}
+long_cov_genes <- long_genes %>%
+  left_join(cleanCovar, by = "geoID")
+```
+
+### Turn two categorical covariates into factors
+
+```{r}
+# Preeclampsia status
+long_cov_genes$preg_preeclampsia <- factor(long_cov_genes$preg_preeclampsia)
+
+# Maternal asthma status
+long_cov_genes$mat_asthma <- factor(ifelse(long_cov_genes$mat_asthma == 1, 
+                                           "Asthma", "Not Asthma"))
+```
+
+### Turn one continuous covariate into a categorical covariate
+Remember to include this information in labels
+```{r}
+# Delivery weeks in buckets
+# Very Early: before 36 weeks
+# Early: between 36 and 38 weeks
+# On time: between 38 and 40 weeks
+# Late: after 40 weeks
+
+long_cov_genes$delivery_time <- factor(
+  ifelse(long_cov_genes$delivery_weeks < 36, "Very Early", 
+         ifelse(long_cov_genes$delivery_weeks < 38, "Early", 
+                ifelse(long_cov_genes$delivery_weeks > 40, "Late", "On Time"))), 
+  levels = c("Very Early", "Early", "On Time", "Late"), ordered = TRUE)
+levels(long_cov_genes$delivery_time)
+summary(long_cov_genes$delivery_time)
+```
+
+Do this for cleanCovar as well
+```{r}
+cleanCovar$delivery_time <- factor(
+  ifelse(cleanCovar$delivery_weeks < 36, "VeryEarly", 
+         ifelse(cleanCovar$delivery_weeks < 38, "Early", 
+                ifelse(cleanCovar$delivery_weeks > 40, "Late", "OnTime"))), 
+  levels = c("VeryEarly", "Early", "OnTime", "Late"), ordered = TRUE)
+```
+
+### Histogram Function
+```{r}
+# Histogram
+create_histogram <- function(df, geneName){
+  # x is gene expression 
+  ggplot(df, aes(x = geneExp)) +
+    geom_histogram(bins = 40) + 
+    labs(
+      title = paste0(geneName," Gene Expression in Subset of VDAART Study"),
+      x = paste0("Gene Expression of ", geneName),
+      y = "Frequency" # find units 
+    ) +
+    theme_bw() +
+    theme(
+      plot.title = element_textbox_simple(
+        padding = margin(t = 10, b = 10)
+      )
+    )
+}
+```
+
+### Scatterplot Function
+```{r}
+create_scatterplot <- function(df, geneName, contCov){
+  # x is continuous covariate, y is gene expression
+  # covariate currently hard coded 
+  ggplot(df, aes(x = mat_vitD, y = geneExp)) + 
+    geom_point() +
+    labs(
+      title = paste0("Maternal Vitamin D vs. Gene Expression of ", geneName,
+                     " at Trial Entry (10-18 Weeks Gestation)"),
+      x = "Maternal Vitamin D (ng/mL)", # contCov
+      y = paste0("Expression of ", geneName) # geneName 
+    ) +
+    geom_smooth(method = "loess", formula = y ~ x) +
+    theme_bw() +
+    theme(
+      plot.title = element_textbox_simple(
+        padding = margin(t = 10, b = 10)
+      )
+    )
+}
+```
+
+### Boxplot Function
+With jitter
+```{r}
+create_boxplot <- function(df, geneName, catCov1, catCov2){
+  # y is gene expression, x is delivery time in buckets, 
+  # color is preeclampsia status
+  # preeclampsia and delivery time currently hard coded
+  boxplot <- ggplot(df, aes(x = delivery_time, y = geneExp, 
+                        color = preg_preeclampsia)) +
+    geom_boxplot(outlier.shape = NA) +
+    labs(
+      y = geneName,
+      x = "Pregnancy Duration in Weeks",
+      color = "Preeclampsia Status", 
+      title = paste0("Gene Expression of ", geneName, 
+                     " with Pregnancy Duration and Preeclampsia Status")
+    ) +
+    theme_bw() +
+    scale_x_discrete(
+      name = "Pregnancy Duration in Weeks",
+      labels = c("< 36", "36-38", "38-40", "> 40")
+    ) +
+    scale_color_discrete(
+      name = "Preeclampsia Status",
+      labels = c("Normal", "Preeclampsia")
+    ) +
+    geom_point(position = position_jitterdodge()) +
+    #geom_jitter(width = 0.2) + 
+    theme(
+      plot.title = element_textbox_simple(
+        padding = margin(t = 10, b = 10)
+      ),
+      axis.text.y = element_text(face="italic")
+    )
+
+  return(boxplot)
+}
+```
+
+## Define function to create all three plots for a given gene
+```{r}
+create_plot <- function(df, geneName, contCov, catCov1, catCov2){
+  # get only relevant parts of the dataframe 
+  gene <- df[which(df["GENE"] == geneName),]
+  # save plots to vector to be returned as one object 
+  plots <- c()
+  
+  # still passing geneName separately so it's easier to get for titles and labels
+
+  plots <- append(plots, create_histogram(gene, geneName))
+  plots <- append(plots, create_scatterplot(gene, geneName, contCov))
+  plots <- append(plots, create_boxplot(gene, geneName, catCov1, catCov2))
+  return(plots)
+}
+```
+
+## Define function to iterate over list of genes
+```{r}
+# function to create all of three plots for each gene name given
+create_plots <- function(df, geneNames, contCov = "mat_vitD", 
+                         catCov1 = "delivery_time", 
+                         catCov2 = "preg_preeclampsia"){
+  # save plots to vector to be returned as one object 
+  emptyPlots <- c()
+
+  # iterate over list of genes
+  for (i in geneNames) {
+    # create all three types of plots for each gene 
+    emptyPlots <- append(emptyPlots, create_plot(df, i, contCov, catCov1, catCov2))
+  }
+  
+  return(emptyPlots)
+}
+```
+
+## Call function to produce plots
+Genes chosen:
+RASAL3 plays a role in signalling and T cell regulation. It is associated with diverticulitis and epiphyseal dysplasia.
+
+```{r}
+# List of genes to examine
+geneNames = c("RASAL3", "UNC13A","UNC13C", "IL2", "IL24", "IL26", "IL7", 
+              "RBM15", "RBM47", "RBM7")
+# so. several of these actually do not have useful information :/ time to pick different ones
+# was hoping for groups of similar genes 
+# original list: "RASAL3", "UNC13A","UNC13C", "IL12RB1", "IL13", "IL1F10", 
+#"IL2", "IL24", "IL26", "IL7"
+
+```
+
+For Submission 3, this is only being run for RASAL3 in order to not create 30 plots. 
+```{r}
+# Call function to make plots
+allPlots <- create_plots(df = long_cov_genes, geneNames = geneNames[1], 
+                         contCov = "mat_vitD", catCov1 = "delivery_time", 
+                         catCov2 = "preg_preeclampsia")
+
+# Show plots
+allPlots
+
+```
+
+## Subset by selected genes
+```{r}
+chosen_genes <- subset(
+  named_genes, (GENE == geneNames[1] | GENE == geneNames[2] | GENE == geneNames[3] 
+                | GENE == geneNames[4] | GENE == geneNames[5] | GENE == geneNames[6] 
+                | GENE == geneNames[7] | GENE == geneNames[8] 
+                | GENE == geneNames[9] | GENE == geneNames[10]
+                )
+  )
+
+chosen_long_genes <- as.data.frame(
+  subset(long_cov_genes, (GENE == geneNames[1] | GENE == geneNames[2] 
+                          | GENE == geneNames[3] | GENE == geneNames[4] 
+                          | GENE == geneNames[5] | GENE == geneNames[6] 
+                          | GENE == geneNames[7] | GENE == geneNames[8] 
+                          | GENE == geneNames[9] | GENE == geneNames[10])
+         )
+  )
+
+chosen_cov_genes <- subset(
+  long_cov_genes, (GENE == geneNames[1] | GENE == geneNames[2] | GENE == geneNames[3] 
+                   | GENE == geneNames[4] | GENE == geneNames[5] | GENE == geneNames[6] 
+                   | GENE == geneNames[7] | GENE == geneNames[8] | GENE == geneNames[9] 
+                   | GENE == geneNames[10]
+                   )
+  )
+
+rownames(cleanCovar) <- cleanCovar$geoID
+cleanCovar <- cleanCovar[,-2]
+
+# remove column with gene names which leaves all numeric columns 
+chosen_genes <- chosen_genes[,-158]
+```
+
+## Heatmap 
+```{r}
+column_annot <- as.data.frame(cleanCovar[,c("preg_preeclampsia", "delivery_time")])
+rownames(column_annot) <- rownames(cleanCovar)
+
+pheat_colors <- list(
+  `preg_preeclampsia` = c(Normal="darkblue",Preeclampsia="firebrick"),
+  `delivery_time` = c(VeryEarly= "black", Early= "darkgray", 
+                      OnTime = "gray", Late = "lightgray") 
+)
+
+pheatmap(chosen_genes, 
+         show_rownames = F, 
+         show_colnames = F, 
+         annotation_col = column_annot, 
+         annotation_colors = pheat_colors, 
+         clustering_distance_cols = "canberra", 
+         clustering_distance_rows = "canberra",
+         clustering_method = "ward.D2", 
+         breaks=seq(from=3, to=12, length.out=101))
+```
+
+## Additional Plot: Ridge Plot
+```{r}
+ggplot(chosen_cov_genes, aes(x = geneExp, y = GENE, fill = GENE)) +
+  geom_density_ridges() +
+  labs(
+    title = "Distributions of Expressions of Selected Genes",
+    x = "Gene Expression",
+    y = "Gene"
+  ) +
+  theme_ridges() +
+  theme(
+    legend.position = "none",
+    axis.text.y = element_text(face="italic"),
+    axis.title.y = element_text(hjust = 0.5),
+    axis.title.x = element_text(hjust = 0.5)
+    )
+```
+
+## Table 1
+```{r}
+# Labels were modified for LaTeX
+table1(~ mat_age + mat_vitD + mat_BMI + delivery_time | 
+         preg_preeclampsia, long_cov_genes)
+```
