@@ -12,11 +12,11 @@ https://pubmed.ncbi.nlm.nih.gov/27841759/
 
 <https://pubmed.ncbi.nlm.nih.gov/27841759/>
 
-R version:
+R version: 4.6.1 (2026-06-24)
 
-LaTeX version:
+LaTeX version: Server Pro 6.3.2
 
-R packages:
+R packages: tidyverse (ggplot2, dplyr), janitor, DataExplorer, ggtext, corrplot, ggridges, waffle, pheatmap, table1
 
 ## Data Set Information
 
